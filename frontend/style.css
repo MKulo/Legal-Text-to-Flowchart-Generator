@@ -32,6 +32,7 @@ textarea {
   font-family: monospace;
   font-size: 1rem;
   padding: 0.8rem;
+  padding-right: 0.0rem;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   margin-bottom: 0.8rem;
