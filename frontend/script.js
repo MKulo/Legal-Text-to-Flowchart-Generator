@@ -7,7 +7,9 @@ async function renderMermaid(code) {
   const chartDiv = document.getElementById('chart');
   const statusDiv = document.getElementById('status');
   
-  statusDiv.textContent = 'Rendering...';
+  statusDiv.textContent = 'Generating...';
+
+  await new Promise(resolve => setTimeout(resolve, 0));
 
   try {
     const id = 'm' + Date.now();
@@ -24,8 +26,15 @@ async function renderMermaid(code) {
 async function generate() {
   const prompt = document.getElementById('prompt').value.trim();
   const model = document.getElementById('modelSelect').value;
+
   lastMermaidCode = '';
   rawOutput = '';
+
+  const statusDiv = document.getElementById('status');
+  statusDiv.textContent = 'Generating...';
+
+  // force UI paint
+  await new Promise(r => setTimeout(r, 0));
 
   try {
     const resp = await fetch('/generate', {
@@ -42,20 +51,20 @@ async function generate() {
     document.getElementById('mermaid-code').value = mermaidCode || rawOutput;
 
     if (!mermaidCode.trim()) {
-      document.getElementById('status').textContent = 'No mermaid detected. You can adjust manually:';
-      const editor = document.getElementById('mermaid-editor');
-      editor.style.display = 'flex';
+      statusDiv.textContent = 'No mermaid detected. You can adjust manually:';
+      document.getElementById('mermaid-editor').style.display = 'flex';
     } else {
+      // this sets status to "Rendered"
       renderMermaid(mermaidCode);
     }
 
   } catch (err) {
-    document.getElementById('status').textContent = 'Render error: ' + err.message;
-    const editor = document.getElementById('mermaid-editor');
-    editor.style.display = 'flex';
+    statusDiv.textContent = 'Render error: ' + err.message;
+    document.getElementById('mermaid-editor').style.display = 'flex';
     document.getElementById('mermaid-code').value = lastMermaidCode || rawOutput;
   }
 }
+
 
 document.getElementById('go').addEventListener('click', generate);
 
