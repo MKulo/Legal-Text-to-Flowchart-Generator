@@ -2,7 +2,19 @@ import express from "express";
 import cors from "cors";
 import path from 'path';
 import { fileURLToPath } from 'url';
-import ollama from "ollama";
+import 'dotenv/config';
+import { Ollama } from "ollama";
+
+const apiKey = process.env.OLLAMA_API_KEY;
+const OLLAMA_URL = "https://ollama.com";
+
+// Create Ollama Cloud client
+const ollama = new Ollama({
+  host: OLLAMA_URL,
+  headers: {
+    Authorization: "Bearer " + apiKey,
+  },
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,8 +53,6 @@ function extractMermaid(text) {
   return mermaid;
 }
 
-
-
 app.post('/generate', async (req, res) => {
   try {
     const { prompt, model } = req.body;
@@ -58,11 +68,10 @@ app.post('/generate', async (req, res) => {
       "The output MUST be ONLY the Mermaid code block.\n\n" +
       "Instructions:\n" +
       "- Ensure the generated diagram is a decision flowchart that a user can follow.\n" +
-      "- Do NOT interpret, paraphrase, or rewrite the legal text too much. Use the same words that are used in the original text.\n" +
+      "- Do NOT interpret, paraphrase, or rewrite the legal text. Don't be creative. Use the same words that are used in the original text.\n" +
       "- For node text, use square brackets [] for standard process steps.\n" +
       "- For decision nodes, use curly braces {} with simple text.\n" +
       "- Avoid parentheses (), commas ,, or other punctuation that could confuse the parser.\n" +
-      "- If a concept is long, split it into multiple nodes.\n"
       "For example:\n" +
       "Prompt: 'This is the legal text you should convert: The requirements for a unilateral juridical act are:\n" +
       "(a) that the party doing the act intends to be legally bound or to achieve the relevant legal effect;\n" +
@@ -78,23 +87,22 @@ app.post('/generate', async (req, res) => {
       "D -->|Yes| E[Act Applies];\n" +
       "D -->|No| F;\n\n";
 
+    const selectedModel =
+      typeof model === "string" && model.trim() !== ""
+        ? model.trim()
+        : "qwen3-coder:480b-cloud";
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 100000); // 100 seconds
-
-    const selectedModel = typeof model === "string" && model.trim() !== ""
-      ? model.trim()
-      : "qwen3-coder:480b-cloud"; // fallback default
-
-    const ollamaResp = await ollama.chat({
+    // ----- USE OLLAMA CLOUD CLIENT HERE -----
+    const response = await ollama.chat({
       model: selectedModel,
       messages: [
         { role: "system", content: system_message_content },
         { role: "user", content: adjustedPrompt }
       ],
+      stream: false
     });
 
-    const possibleText = ollamaResp?.message?.content || "";
+    const possibleText = response?.message?.content || "";
     const mermaid = extractMermaid(String(possibleText));
 
     console.log("RAW model output:", possibleText);
@@ -102,6 +110,7 @@ app.post('/generate', async (req, res) => {
     console.log("FINAL MERMAID:\n" + mermaid);
 
     return res.json({ mermaid });
+
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
