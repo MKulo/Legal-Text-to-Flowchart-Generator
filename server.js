@@ -56,7 +56,7 @@ function extractMermaid(text) {
 app.post('/generate', async (req, res) => {
   try {
     const { prompt, model } = req.body;
-    if (typeof prompt !== 'string' || prompt.length > 2000) {
+    if (typeof prompt !== 'string' || prompt.length > 20000) {
       return res.status(400).json({ error: 'Invalid prompt or prompt too long' });
     }
 
